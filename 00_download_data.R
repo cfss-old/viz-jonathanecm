@@ -13,7 +13,16 @@ library(twitteR)
 setup_twitter_oauth(consumer_key = getOption("twitter_api_key"),
                     consumer_secret = getOption("twitter_api_token"))
 
-tweets <- searchTwitter("referendum revocatorio", n = 10, lang = "es")
+
+tweets_df_4 <- searchTwitter("venezuela + gobierno", 
+                        n = 15, 
+                        lang = "es",
+                        since = "2017-05-20", 
+                        until = "2017-05-28") %>% 
+              twListToDF() %>%
+              as.tibble()
+
+
 
 
 
