@@ -1,0 +1,158 @@
+---
+title: "Presentation"
+author: "Camacho Jonathan"
+date: "5/29/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, echo=FALSE, message=FALSE}
+library(tidytext)
+library(stringr)
+library(knitr)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(scales)
+```
+
+### Objectives:
+#### - Explore the charactetistics of the most popular twits from Venezuela since May 1st.
+
+### Context:
+
+```{r, echo=FALSE, echo=FALSE, message=FALSE}
+# Variables
+set.seed(1234)
+theme_set(theme_minimal())
+reg <- "([^A-Za-z\\d#@']|'(?![A-Za-z\\d#@]))"
+spanish_stopwords <- read_csv("./data/stopwords_es.csv")
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Reading data. 
+all_tweets <- as.tibble(read_csv("./data/all_tweets.csv"))
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Tokenizing by one term. 
+one_term <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high"))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), "")) %>%
+       unnest_tokens(word, text, token = "regex", pattern = reg, drop = FALSE) %>%
+       filter(!word %in% spanish_stopwords$Word, str_detect(word, "[a-z]"))
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Count by twit popularity.
+total_words_popularity <- as.tibble(table(one_term$popularity))
+kable(total_words_popularity)
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Words frecuency.
+one_term %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 200) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  labs(title = "Frecuency of Terms",
+       x = "Frecuency", y = "Terms") +
+  coord_flip()
+```
+
+```{r, echo=FALSE, message=FALSE}
+# tf_idf Frequencies
+tweet_words_count <- one_term %>%
+  count(popularity, word, sort = TRUE) %>%
+  ungroup()
+
+total_words <- tweet_words_count %>%
+  group_by(popularity) %>%
+  summarize(total = sum(n))
+
+tweet_words_count <- left_join(tweet_words_count, total_words)
+
+tweet_words_count <- tweet_words_count %>%
+  bind_tf_idf(word, popularity, n)
+tweet_words_count
+
+tweet_words_count %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+
+tweet_important <- tweet_words_count %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+tweet_important %>%
+  top_n(35) %>%
+  ggplot(aes(word, tf_idf, fill = popularity)) +
+  geom_col() +
+  labs(title = "Highest tf-idf words by Popularity",
+       x = "Word", y = "tf-idf") +
+  coord_flip()
+
+tweet_important %>%
+  top_n(25) %>%
+  ggplot(aes(word, tf_idf, fill = popularity)) +
+  geom_col() +
+  labs(title = "Highest tf-idf words by Popularity",
+       x = "Word", y = "tf-idf") +
+  coord_flip() + 
+       facet_wrap(~ popularity, ncol = 2, scales = "free_y")
+```
+
+### N Grams
+```{r, echo=FALSE, message=FALSE}
+ngrams <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high"))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), "")) %>%
+       unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
+       separate(trigram, c("word1", "word2", "word3"), sep = " ") %>%
+       filter(!word1 %in% spanish_stopwords$Word, str_detect(word1, "[a-z]"), 
+              !word2 %in% spanish_stopwords$Word, str_detect(word2, "[a-z]"),
+              !word3 %in% spanish_stopwords$Word, str_detect(word3, "[a-z]"))
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+ngrams %>% 
+       count(word1, word2, word3, sort = TRUE)
+```
+
+
+
+```{r, echo=FALSE, message=FALSE}
+ngrams_united <- ngrams %>%
+  unite(ngram, word1, word2, word3, sep = " ")
+
+ngram_tf_idf <- ngrams_united %>%
+  count(popularity, ngram) %>%
+  bind_tf_idf(ngram, popularity, n) %>%
+  arrange(desc(tf_idf))
+```
+
+```{r, echo=FALSE, message=FALSE}
+ngram_tf_idf %>%
+  top_n(7) %>%
+  ggplot(aes(ngram, tf_idf, fill = popularity)) +
+  geom_col() +
+  labs(title = "Highest tf-idf words by Popularity",
+       x = "Word", y = "tf-idf") +
+  coord_flip() + 
+       facet_wrap(~ popularity, ncol = 2, scales = "free_y")
+```
+
+```{r,  echo=FALSE, message=FALSE}
+
+```
+
+
+

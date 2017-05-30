@@ -13,14 +13,16 @@ library(twitteR)
 setup_twitter_oauth(consumer_key = getOption("twitter_api_key"),
                     consumer_secret = getOption("twitter_api_token"))
 
-
-tweets_df_4 <- searchTwitter("venezuela + gobierno", 
-                        n = 15, 
+# Getting twits
+searchTwitter("venezuela gobierno", 
+                        n = 15000, 
                         lang = "es",
                         since = "2017-05-20", 
                         until = "2017-05-28") %>% 
               twListToDF() %>%
-              as.tibble()
+              write_csv("./data/government_twits.csv") 
+
+
 
 
 
