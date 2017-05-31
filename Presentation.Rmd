@@ -17,6 +17,7 @@ library(readr)
 library(tidyverse)
 library(ggplot2)
 library(scales)
+library(lubridate)
 ```
 
 ### Objectives:
@@ -124,10 +125,10 @@ ngrams <- all_tweets %>%
 
 ```{r, echo=FALSE, message=FALSE}
 ngrams %>% 
-       count(word1, word2, word3, sort = TRUE)
+       count(word1, word2, word3, sort = TRUE) %>% 
+       head() %>%
+       kable()
 ```
-
-
 
 ```{r, echo=FALSE, message=FALSE}
 ngrams_united <- ngrams %>%
@@ -143,16 +144,86 @@ ngram_tf_idf <- ngrams_united %>%
 ngram_tf_idf %>%
   top_n(7) %>%
   ggplot(aes(ngram, tf_idf, fill = popularity)) +
-  geom_col() +
+  geom_col(alpha = 0.8) +
   labs(title = "Highest tf-idf words by Popularity",
        x = "Word", y = "tf-idf") +
   coord_flip() + 
-       facet_wrap(~ popularity, ncol = 2, scales = "free_y")
+       facet_wrap(~ popularity, ncol = 1, scales = "free_y")
+```
+# Initial comparison using metadata
+
+```{r}
+all_tweets_by_popularity <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high")))
 ```
 
-```{r,  echo=FALSE, message=FALSE}
+
+```{r}
+all_tweets_by_popularity %>%
+  count(popularity, hour = hour(with_tz(created, "EST"))) %>%
+  mutate(percent = n / sum(n)) %>%
+  ggplot(aes(hour, percent, color = popularity)) +
+  geom_line() +
+  scale_y_continuous(labels = percent_format()) +
+  labs(x = "Hour of day (EST)",
+       y = "% of tweets",
+       color = "")
+```
+
+
+
+
 
 ```
+
+
+## Sentiment Analysis.
+```{r}
+#Loading sentiments lexicons.
+es_sentiments <- as.tibble(read_csv("./data/es_sentiments.csv"))
+
+# Extracting nrc and bing lexicons. 
+nrc <- es_sentiments %>%
+       filter(lexicon == "nrc")
+
+bing <- es_sentiments %>% 
+       filter(lexicon == "bing") %>%
+       select(word = palabra, sentiment)
+       
+
+one_term_sentiments <- one_term %>%
+  inner_join(bing) %>%
+  count(popularity, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+ggplot(one_term_sentiments, aes(index, sentiment, fill = book)) +
+        geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+        facet_wrap(~book, ncol = 2, scales = "free_x")
+
+# exampel 
+
+library(janeaustenr)
+
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]", 
+                                                 ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+janeaustensentiment <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+```
+
+
+
+
 
 
 

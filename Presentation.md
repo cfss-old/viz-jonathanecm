@@ -1,37 +1,70 @@
-Popular Twits in the Middle of a Political Crisis
+Popular Twits in The Middle of a Political Crisis
 ========================================================
 author: Camacho Jonathan
 date: 05/31/2017
 autosize: true
 
-First Slide
+Question:
 ========================================================
 
-For more details on authoring R presentations please visit <https://support.rstudio.com/hc/en-us/articles/200486468>.
+- In the middle of the current political crisis, what are the charactetistics of the most Venezuela's most popular tweets?
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
+Context:
+========================================================
 
-Slide With Code
+Methods:
+========================================================
+- Created a API to get tweets from 05/01 to 05/28.
+       - Initial size: 45,000 tweets.
+- Tidy dataset
+       - Romoved retweets.
+       - Tokenized tweets by words and ngrams.
+       - Added new variables: tweet type, and tweet popularity.
+- Final size: 6,445 tweets. 
+
+Frequency Analysis
 ========================================================
 
 
-```r
-summary(cars)
-```
 
-```
-     speed           dist       
- Min.   : 4.0   Min.   :  2.00  
- 1st Qu.:12.0   1st Qu.: 26.00  
- Median :15.0   Median : 36.00  
- Mean   :15.4   Mean   : 42.98  
- 3rd Qu.:19.0   3rd Qu.: 56.00  
- Max.   :25.0   Max.   :120.00  
-```
 
-Slide With Plot
+
+
+
+
+
+
+|Populatiry | Total|
+|:----------|-----:|
+|high       |   201|
+|low        | 55283|
+|medium     |  1940|
+
+Terms' Frequency.
+========================================================
+![plot of chunk unnamed-chunk-5](Presentation-figure/unnamed-chunk-5-1.png)
+
+Terms's tf_idf Frequency.
+========================================================
+![plot of chunk unnamed-chunk-6](Presentation-figure/unnamed-chunk-6-1.png)
+One-grams' tf_idf Frequency.
+========================================================
+![plot of chunk unnamed-chunk-7](Presentation-figure/unnamed-chunk-7-1.png)
+N-grams' Frecuency
 ========================================================
 
-![plot of chunk unnamed-chunk-2](Presentation-figure/unnamed-chunk-2-1.png)
+
+
+|Word 1    |Word 2    |word 3    | Total|
+|:---------|:---------|:---------|-----:|
+|venezuela |necesita  |gobierno  |   111|
+|caracas   |tv        |venezuela |    84|
+|radio     |caracas   |tv        |    84|
+|tv        |venezuela |necesita  |    84|
+|estado    |más       |crítica   |    76|
+|maduro    |prohíbe   |mandar    |    74|
+T
+========================================================
+
+
+![plot of chunk unnamed-chunk-11](Presentation-figure/unnamed-chunk-11-1.png)
