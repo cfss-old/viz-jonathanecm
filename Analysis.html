@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Analysis</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Final Project</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="Literature_review.html">Literature</a>
+</li>
+<li>
+  <a href="Methods.html">Methods</a>
+</li>
+<li>
+  <a href="Analysis.html">Analysis</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Analysis</h1>
+
+</div>
+
+
+<div id="exploratory-analysis." class="section level2">
+<h2>Exploratory analysis.</h2>
+<p>I started the analysis exploring the distribution of p-values across all variables. The idea is to check if there is a clustering of p-values around the significance threshold of p = 0.05. The theory of p-curve predicts that naturally occurring p-values are equally distributed. With the exception that in the presence of a effect of the independent variable, the distribution will grow exponentially as it approaches 0.01.</p>
+<div class="figure">
+<img src="plots/p_val_distribution.png" />
+
+</div>
+<p>In the first place, the graph above shows an exponential grow approaching 0.00, winch is expected with studies that are exploring a true effect. In the case of a non-effect, it is expected that the distribution of p-values is equally and project a flat distribution. More interestingly, is the fact that it seems to be clustering of p-values around absolute values such as 0.01, 0.02, 0.03, a 0.04. even when the graph show a distribution of p-values with generally a true effect, it is expected that the distribution of p-values across the plot to be equal. Thus, this clustering near absolute values could be indicative of heave rounding of p-values by researchers, which is an indication of p-hacking. Even when p-hacking research tends to focus in values near p = 0.05, this clustering surrounding absolute p-values represent an interesting phenomenon to explore.</p>
+<table>
+<caption>P-values frequency by intervals</caption>
+<thead>
+<tr class="header">
+<th align="center">p-values Intervals</th>
+<th align="center">Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">[0,0.005]</td>
+<td align="center">40221</td>
+</tr>
+<tr class="even">
+<td align="center">(0.005,0.01]</td>
+<td align="center">19462</td>
+</tr>
+<tr class="odd">
+<td align="center">(0.01,0.015]</td>
+<td align="center">7535</td>
+</tr>
+<tr class="even">
+<td align="center">(0.015,0.02]</td>
+<td align="center">12827</td>
+</tr>
+<tr class="odd">
+<td align="center">(0.02,0.025]</td>
+<td align="center">5048</td>
+</tr>
+<tr class="even">
+<td align="center">(0.025,0.03]</td>
+<td align="center">10368</td>
+</tr>
+<tr class="odd">
+<td align="center">(0.03,0.035]</td>
+<td align="center">4039</td>
+</tr>
+<tr class="even">
+<td align="center">(0.035,0.04]</td>
+<td align="center">8600</td>
+</tr>
+<tr class="odd">
+<td align="center">(0.04,0.045]</td>
+<td align="center">3489</td>
+</tr>
+<tr class="even">
+<td align="center">(0.045,0.05]</td>
+<td align="center">3130</td>
+</tr>
+</tbody>
+</table>
+<p>In the table above it is possible to see the p-value intervals around which p-values are clustered. For example, we can see that there are significantly more values in the intervals from 0 to 0.005 with 40,221; 0.005 to 0.01 with 19,462; 0.015 to 0.02 with 12827; 0.025 to 0.03 with 10,368; and 0.035 to 0.04 with 8600. It interesting that, in the plot and table above there is not a significant clustering of p-values between the interval 0.04 and 0.05.</p>
+<p>I continued the exploratory analysis examining the distribution of p-values across different categories. However, because the data set has more than 22 categories it was difficult to create a graph avoiding clustering of values. Thus, I selected the more frequent categories and plot those.</p>
+<div class="figure">
+<img src="plots/p_val_cat_distribution.png" />
+
+</div>
+<p>The graph above shows the most frequent categories as Medical and Health Sciences and Multidisciplinary Studies. Similarly, to the distribution of all p-values, the distribution of p-values indicates that the studies explore a true effect phenomenon, that is reaffirming. Furthermore, there is a similar clustering of around absolute p-values independent of the category. Finally, in this plot by categories it is possible to see a small clustering of p-values just bellow p = 0.05. Clustering that was not visible in the graph of all p-values. It is interesting that a similar small clustering of p-values is present between all mayor absolute p-values such as 0.01 and 0.02. Perhaps, that is the true distribution of p-values and the peaks represent p-hacking.</p>
+<div class="figure">
+<img src="plots/p_val_year_distribution.png" />
+
+</div>
+<p>In the context of the public PubMed database, that goes from 1997 to 2014, there has been in significant increase in the number of studies that reported a p-value either in the results section or the abstract. This increase of p-value reporting is particularly strong after 2010. Similarly, it is interesting the sharp decrease of p-value reported after 2013, but this might be related to the number of articles added to the database and not to the number of articles published in PubMed or the number of articles reporting p-values.</p>
+<div class="figure">
+<img src="plots/p_val_section_distribution.png" />
+
+</div>
+<p>One of the aspect explored by David Chavalarias et al., (2016) is the frequency of p-values reported in both the abstracts and the result section. Similarly to the authors’ finding, my exploration finds that most p-values are reported in the body of the articles, in particular in the results section.</p>
+<div class="figure">
+<img src="plots/sections_pval_distribution.png" />
+
+</div>
+<p>Besides the number of p-values reported, it is clear in the plot that the distribution of p-values reported in abstracts does not significantly differ from the distribution of p-values reported in the result section. The larger among of p-values reported in the result section could be related with the fact that researchers have the tendency of reporting only strong p-values in abstracts while weaker ones are reported in the result section only.</p>
+</div>
+<div id="binomial-tests." class="section level2">
+<h2>Binomial Tests.</h2>
+<table>
+<caption>Results P-values probability in intervals 0.03 and 0.04</caption>
+<thead>
+<tr class="header">
+<th align="center">Bins</th>
+<th align="center">Successes</th>
+<th align="center">Trials</th>
+<th align="center">Probabilty</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">0.03</td>
+<td align="center">11977</td>
+<td align="center">10337</td>
+<td align="center">4.929508e-28</td>
+</tr>
+<tr class="even">
+<td align="center">0.04</td>
+<td align="center">2397</td>
+<td align="center">2755</td>
+<td align="center">6.503877e-07</td>
+</tr>
+</tbody>
+</table>
+<p>First I wanted to see the probability of getting a p-value from the result section in the intervals 0 &gt; p &lt;= 0.03 and 0.03 =&gt; p &lt;= 0.04. Int the case of the result section, the probability of getting a p-value in the interval 0 &gt; p &lt;= 0.03 is 4.92 percent. Similarly the probability of getting a p-value in the interval 0.03 =&gt; p &lt;= 0.04 is 6.50 percent. The probability of getting a p-value in the lower bin (0 to 0.03) is significantly lower than the probability of getting a p-value in the bin closer to the threshold p = 0.05. So, I reject the hypothesize that the frequency of p-values in the bins just bellow the threshold p= 0.05 will be the similar and the frequency of p-values will increasing as the p-value approaches 0.01. This rejection of the hypothesis is an indication of a moderate p-hacking.</p>
+<table>
+<caption>Results P-values probability in intervals 0.03 and 0.04</caption>
+<thead>
+<tr class="header">
+<th align="center">Bins</th>
+<th align="center">Successes</th>
+<th align="center">Trials</th>
+<th align="center">Probabilty</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">0.03</td>
+<td align="center">1784</td>
+<td align="center">1536</td>
+<td align="center">1.797859e-05</td>
+</tr>
+<tr class="even">
+<td align="center">0.04</td>
+<td align="center">348</td>
+<td align="center">375</td>
+<td align="center">3.335726e-01</td>
+</tr>
+</tbody>
+</table>
+<p>Int the case of the abstract section, the probability of getting a p-value in the intervals 0 &gt; p &lt;= 0.03 and 0.03 =&gt; p &lt;= 0.04 is 1.79 and 3.33 respectively. Thus, similarly I reject the hypothesis. Concluding that the test shows p-hacking around the threshold of p = 0.05.</p>
+<div class="figure">
+<img src="plots/binomial_distribution_by_cat.png" />
+
+</div>
+<p>Finally, following Head M. et al, (2015), I conducted a binomial test by categories to determine if the p-haling detected in the binomial test across all categories is present in particular categories. The color of the market represent the sample size.</p>
+<div id="citations" class="section level3">
+<h3>Citations</h3>
+<p>Head, M. L., Holman, L., Lanfear, R., Kahn, A. T., &amp; Jennions, M. D. (2015). The Extent and Consequences of P-Hacking in Science. PLOS Biology, 13(3), e1002106–15. <a href="http://doi.org/10.1371/journal.pbio.1002106" class="uri">http://doi.org/10.1371/journal.pbio.1002106</a></p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

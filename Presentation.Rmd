@@ -236,7 +236,7 @@ topicm_words_count <- one_term %>%
 tweets_dtm <- topicm_words_count %>%
   cast_dtm(id, word, n)
 
-tweets_lda <- LDA(tweets_dtm, k = 4, control = list(seed = 1234))
+tweets_lda <- LDA(tweets_dtm, k = 10, control = list(seed = 1234))
 
 tweets_lda_td <- tidy(tweets_lda)
 tweets_lda_td
@@ -247,6 +247,13 @@ top_terms <- tweets_lda_td %>%
   ungroup() %>%
   arrange(topic, -beta)
 top_terms
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
 ```
 
 

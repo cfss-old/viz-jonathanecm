@@ -20,7 +20,7 @@ searchTwitter("venezuela gobierno",
                         since = "2017-05-20", 
                         until = "2017-05-28") %>% 
               twListToDF() %>%
-              write_csv("./data/government_twits.csv") 
+              write_csv("./data/government_twits_0531_1.csv") 
 
 
 
