@@ -6,32 +6,33 @@ autosize: true
 
 Context:
 ========================================================
-- In April 12, 2017, the Venezuelan Supreme Court (SC) trying to take over the function of the Congress (C); a coup d'état. 
-- Next day, in a meeting with all the ministers, the president asked the SC to concider retracting its prior desicion. 
-- That night, the SC did it. 
-- However, a large sector of the population, went to the streets to protest for what they considered as a coup d'état. 
-- Protest has not stopped since then.
-       - Sixthy persons have died as result of violence during the protests; most of then in hand of the national police. 
+- On April 12, 2017, the Venezuelan Supreme Court (SC) announced that it was taking over the Congress' functions; **a juditial coup d'état**. 
+- The next day, the President asked the SC to consider retracting from its announcement. 
+- That night, the SC did it; **talk about separation of powers** 
+- Since then, a large sector of the population declared themselves in rebellion for what they consider as a breakage of the constitutional order. 
+       - Protest has not stopped since then: sixty persons have died in the hands of the national police. 
+
+**If you are interested in socila movements this is a nice chance.**
 
 Question:
 ========================================================
 
-- I wanted to explore, In the middle of the current political crisis, what are the charactetistics of the most influencial tweets?
+- I wanted to explore, in the middle of the current political crisis, what are the characteristics of the most influential messages in the twiter social media?
 
-- This is an important question related the use of media for political mobilization.
+- This is an important question related the use of socila media for political mobilization.
 
 Methods:
 ========================================================
 - I created a API to get tweets from 05/01 to 05/28.
        - No geolocation in tweets.
-       - Search conducted using the terms "venezuela," "gobierno," and "cambio."
+       - Search conducted using the terms "Venezuela," "gobierno," and "cambio."
        - Initial size: 45,000 tweets.
 - Tidy data-set
        - Removed re-tweets.
        - Tokenized tweets by words and n-grams.
        - Added new variables: tweet type, and tweet popularity (Construct).
 - Final size: 6,445 tweets.
-- Tranlated the "nrc" and "bing" lexicons.
+- Translated the "nrc" and "bing" lexicons.
 
 Frequency Analysis
 ========================================================
@@ -86,8 +87,8 @@ one_term %>%
   filter(n > 200) %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(word, n)) +
-  geom_col() +
-  labs(title = "Terms Frecuency Counts",
+  geom_col(alpha = 0.8, fill = "turquoise") +
+  labs(title = "Terms' Frecuency Counts",
        x = "Frecuency", y = "Terms") +
   coord_flip()
 ```
@@ -120,7 +121,7 @@ tweet_important <- tweet_words_count %>%
 tweet_important %>%
   top_n(35) %>%
   ggplot(aes(word, tf_idf, fill = popularity)) +
-  geom_col() +
+  geom_col(alpha = 0.8) +
   labs(title = "Highest tf-idf words by Popularity",
        x = "Word", y = "tf-idf") +
   coord_flip()
@@ -131,16 +132,16 @@ One-grams' tf_idf Frequency by Popularity.
 tweet_important %>%
   top_n(25) %>%
   ggplot(aes(word, tf_idf, fill = popularity)) +
-  geom_col() +
+  geom_col(alph ) +
   labs(title = "Highest tf-idf words by Popularity",
        x = "Word", y = "tf-idf") +
   coord_flip() + 
        facet_wrap(~ popularity, ncol = 2, scales = "free_y")
 ```
 
-How to change individualy the x-axis when using "facets."
+How to change individually the x-axis when using "facets."
 
-N-grams' Frecuency Counts. 
+N-grams' Frequency Counts. 
 ========================================================
 ```{r, echo=FALSE, message=FALSE}
 ngrams <- all_tweets %>%
@@ -294,15 +295,15 @@ top_terms %>%
 To Work On
 ========================================================
 - Double check lexicons and tokenization process.
-- Stilylize plots and charts. 
-- Organize files in repo. Righ now is a mess!
+- Stylize plots and charts. 
+- Organize files in repo. Right now is a mess!
 - Streamline the code and pipeline.
 - Finishing the AFINN lexicon.
 - Get more tweets.
 - Adding a Shiny app for exploration.
-       - Bootstraping the data.
+       - Bootstrapping the data.
        - Poisson measure.
-       - Select tweets acording to populatity and tf-idf score.
+       - Select tweets according to the popularity and tf-idf score.
 - Editing website.
 
 

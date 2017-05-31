@@ -91,15 +91,26 @@ tweet_words_count %>%
 tweet_important <- tweet_words_count %>%
   arrange(desc(tf_idf)) %>%
   mutate(word = factor(word, levels = rev(unique(word))))
+```
 
+```{r, echo=FALSE}
 tweet_important %>%
   top_n(35) %>%
   ggplot(aes(word, tf_idf, fill = popularity)) +
   geom_col() +
-  labs(title = "Highest tf-idf words by Popularity",
+       labs(title = "Highest tf-idf words by Popularity",
        x = "Word", y = "tf-idf") +
+  guides(color = guide_legend(override.aes = list(size = 2))) +
   coord_flip()
 
+# +
+#        scale_color_brewer(palette = "Dark2") +
+#        guides(color = guide_legend(override.aes = list(size = 3)))
+# +
+#   
+```
+
+```{r, echo=FALSE}
 tweet_important %>%
   top_n(25) %>%
   ggplot(aes(word, tf_idf, fill = popularity)) +
@@ -109,6 +120,7 @@ tweet_important %>%
   coord_flip() + 
        facet_wrap(~ popularity, ncol = 2, scales = "free_y")
 ```
+
 
 ### N Grams
 ```{r, echo=FALSE, message=FALSE}
