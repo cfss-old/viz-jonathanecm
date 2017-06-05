@@ -1,0 +1,10 @@
+name: venezuelas_sentiments
+title: Venezuelas_sentiments
+account: jonathanecm
+server: shinyapps.io
+appId: 186313
+bundleId: 853234
+url: https://jonathanecm.shinyapps.io/venezuelas_sentiments/
+when: 1496639282.0612
+asMultiple: FALSE
+asStatic: FALSE

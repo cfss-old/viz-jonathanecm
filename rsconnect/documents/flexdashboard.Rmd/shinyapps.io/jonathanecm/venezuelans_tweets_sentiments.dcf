@@ -1,0 +1,10 @@
+name: venezuelans_tweets_sentiments
+title: Venezuelans_tweets_sentiments
+account: jonathanecm
+server: shinyapps.io
+appId: 186316
+bundleId: 853249
+url: https://jonathanecm.shinyapps.io/venezuelans_tweets_sentiments/
+when: 1496640148.38754
+asMultiple: FALSE
+asStatic: FALSE

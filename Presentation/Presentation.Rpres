@@ -1,0 +1,311 @@
+Popular Twits in The Middle of a Political Crisis
+========================================================
+author: Camacho Jonathan
+date: 05/31/2017
+autosize: true
+
+Context:
+========================================================
+- On April 12, 2017, the Venezuelan Supreme Court (SC) announced that it was taking over the Congress' functions; **a juditial coup d'état**. 
+- The next day, the President asked the SC to consider retracting from its announcement. 
+- That night, the SC did it; **talk about separation of powers** 
+- Since then, a large sector of the population declared themselves in rebellion for what they consider as a breakage of the constitutional order. 
+       - Protest has not stopped since then: sixty persons have died in the hands of the national police. 
+
+**If you are interested in socila movements this is a nice chance.**
+
+Question:
+========================================================
+
+- I wanted to explore, in the middle of the current political crisis, what are the characteristics of the most influential messages in the twiter social media?
+
+- This is an important question related the use of socila media for political mobilization.
+
+Methods:
+========================================================
+- I created a API to get tweets from 05/01 to 05/28.
+       - No geolocation in tweets.
+       - Search conducted using the terms "Venezuela," "gobierno," and "cambio."
+       - Initial size: 45,000 tweets.
+- Tidy data-set
+       - Removed re-tweets.
+       - Tokenized tweets by words and n-grams.
+       - Added new variables: tweet type, and tweet popularity (Construct).
+- Final size: 6,445 tweets.
+- Translated the "nrc" and "bing" lexicons.
+
+Frequency Analysis
+========================================================
+#### Total tweets by populatiry. (re-tweets count)
+```{r, echo=FALSE, message= FALSE}
+library(tidytext)
+library(stringr)
+library(knitr)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(lubridate)
+library(topicmodels)
+```
+
+```{r, echo=FALSE, echo=FALSE, message=FALSE,}
+# Variables
+set.seed(1234)
+theme_set(theme_minimal())
+reg <- "([^A-Za-z\\d#@']|'(?![A-Za-z\\d#@]))"
+spanish_stopwords <- read_csv("./data/stopwords_es.csv")
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Reading data. 
+all_tweets <- as.tibble(read_csv("./data/all_tweets.csv"))
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Tokenizing by one term. 
+one_term <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high"))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), "")) %>%
+       unnest_tokens(word, text, token = "regex", pattern = reg, drop = FALSE) %>%
+       filter(!word %in% spanish_stopwords$Word, str_detect(word, "[a-z]"))
+```
+
+```{r, echo=FALSE, message=FALSE, fig.align}
+# Count by twit popularity.
+total_words_popularity <- as.tibble(table(one_term$popularity))
+kable(total_words_popularity, col.names = c("Populatiry", "Total"), caption = "Terms' Frecuency Counts.") # Check caption.
+```
+
+Terms' Frequency Counts.
+========================================================
+```{r, echo=FALSE, message=FALSE}
+# Words frecuency.
+one_term %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 200) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col(alpha = 0.8, fill = "turquoise") +
+  labs(title = "Terms' Frecuency Counts",
+       x = "Frecuency", y = "Terms") +
+  coord_flip()
+```
+
+Terms' tf_idf Frequency.
+========================================================
+```{r, echo=FALSE, message = FALSE}
+# tf_idf Frequencies
+tweet_words_count <- one_term %>%
+  count(popularity, word, sort = TRUE) %>%
+  ungroup()
+
+total_words <- tweet_words_count %>%
+  group_by(popularity) %>%
+  summarize(total = sum(n))
+
+tweet_words_count <- left_join(tweet_words_count, total_words)
+
+tweet_words_count <- tweet_words_count %>%
+  bind_tf_idf(word, popularity, n)
+
+tweet_words_coun <- tweet_words_count %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+
+tweet_important <- tweet_words_count %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+tweet_important %>%
+  top_n(35) %>%
+  ggplot(aes(word, tf_idf, fill = popularity)) +
+  geom_col(alpha = 0.8) +
+  labs(title = "Highest tf-idf words by Popularity",
+       x = "Word", y = "tf-idf") +
+  coord_flip()
+```
+One-grams' tf_idf Frequency by Popularity.
+========================================================
+```{r, echo=FALSE}
+tweet_important %>%
+  top_n(25) %>%
+  ggplot(aes(word, tf_idf, fill = popularity)) +
+  geom_col(alph = 0.8) +
+  labs(title = "Highest tf-idf words by Popularity",
+       x = "Word", y = "tf-idf") +
+  coord_flip() + 
+       facet_wrap(~ popularity, ncol = 2, scales = "free_y")
+```
+
+How to change individually the x-axis when using "facets."
+
+N-grams' Frequency Counts. 
+========================================================
+```{r, echo=FALSE, message=FALSE}
+ngrams <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high"))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), "")) %>%
+       unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
+       separate(trigram, c("word1", "word2", "word3"), sep = " ") %>%
+       filter(!word1 %in% spanish_stopwords$Word, str_detect(word1, "[a-z]"), 
+              !word2 %in% spanish_stopwords$Word, str_detect(word2, "[a-z]"),
+              !word3 %in% spanish_stopwords$Word, str_detect(word3, "[a-z]"))
+```
+
+```{r, echo=FALSE, message=FALSE}
+ngrams %>% 
+       count(word1, word2, word3, sort = TRUE) %>% 
+       head(13) %>%
+       kable(col.names = c("Word 1", "Word 2", "word 3", "Total"),  caption = "nGrams' Frecuency.")
+```
+
+N-grams Ranked by tf-idf and Group by Popularity
+========================================================
+```{r, echo=FALSE, message=FALSE}
+ngrams_united <- ngrams %>%
+  unite(ngram, word1, word2, word3, sep = " ")
+
+ngram_tf_idf <- ngrams_united %>%
+  count(popularity, ngram) %>%
+  bind_tf_idf(ngram, popularity, n) %>%
+  arrange(desc(tf_idf))
+```
+
+```{r, echo=FALSE, message=FALSE}
+ngram_tf_idf %>%
+  top_n(5) %>%
+  ggplot(aes(ngram, tf_idf, fill = popularity)) +
+  geom_col(alpha = 0.8) +
+  labs(title = "N-grams Ranked by tf-idf and Group by Popularity",
+       x = "Word", y = "tf-idf") +
+       coord_flip() + 
+       facet_wrap(~ popularity, ncol = 2, scales = "free_y")
+```
+- Figure why popular tweets has more than the selected top 5?
+- Print in a better way.
+
+Comparing Tweets by Time Posted.
+========================================================
+
+```{r, echo=FALSE}
+all_tweets_by_popularity <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high")))
+```
+
+```{r, echo=FALSE}
+all_tweets_by_popularity %>%
+  count(popularity, hour = hour(with_tz(created, "EST"))) %>%
+  mutate(percent = n / sum(n)) %>%
+  ggplot(aes(hour, percent, color = popularity)) +
+  geom_line() +
+  scale_y_continuous(labels = percent_format()) +
+  labs(x = "Hour of day (EST)",
+       y = "% of tweets",
+       color = "")
+```
+
+
+Sentiment Analysis.
+========================================================
+```{r, echo=FALSE}
+#Loading sentiments lexicons.
+es_sentiments <- as.tibble(read_csv("./data/es_sentiments.csv"))
+
+# Extracting nrc and bing lexicons. 
+nrc <- es_sentiments %>%
+       filter(lexicon == "nrc") %>%
+       select(word = palabra, sentiment)
+
+bing <- es_sentiments %>% 
+       filter(lexicon == "bing") %>%
+       select(word = palabra, sentiment)
+       
+```
+
+```{r, echo=FALSE}
+popularity <- one_term %>%
+  group_by(popularity) %>%
+  mutate(total_words = n()) %>%
+  ungroup() %>%
+  distinct(id, popularity, total_words)
+
+by_popularity_sentiment <- one_term %>%
+  inner_join(nrc, by = "word") %>%
+  count(sentiment, id) %>%
+  ungroup() %>%
+  complete(sentiment, id, fill = list(n = 0)) %>%
+  inner_join(popularity) %>%
+  group_by(popularity, sentiment, total_words) %>%
+  summarize(words = sum(n)) %>%
+  ungroup()
+```
+
+```{r, echo=FALSE}
+tweet_important %>%
+  inner_join(nrc, by = "word") %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  mutate(sentiment = reorder(sentiment, -tf_idf),
+         word = reorder(word, -tf_idf)) %>%
+  group_by(sentiment) %>%
+  top_n(7, tf_idf) %>%
+  ungroup() %>%
+  ggplot(aes(word, tf_idf, fill = popularity)) +
+  facet_wrap(~ sentiment, scales = "free", nrow = 2) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "",
+       y = "tf-idf") + 
+       scale_fill_manual(name = "", labels = c("high", "low", "medium"),
+                         values = c("red", "lightblue", "blue"))
+```
+
+Topic Modeling.
+========================================================
+```{r, echo=FALSE}
+topicm_words_count <- one_term %>%
+  count(id, word, sort = TRUE) %>%
+       ungroup()
+
+tweets_dtm <- topicm_words_count %>%
+  cast_dtm(id, word, n)
+
+tweets_lda <- LDA(tweets_dtm, k = 7, control = list(seed = 1234))
+
+tweets_lda_td <- tidy(tweets_lda)
+
+top_terms <- tweets_lda_td %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+```
+
+
+To Work On
+========================================================
+- Double check lexicons and tokenization process.
+- Stylize plots and charts. 
+- Organize files in repo. Right now is a mess!
+- Streamline the code and pipeline.
+- Finishing the AFINN lexicon.
+- Get more tweets.
+- Adding a Shiny app for exploration.
+       - Bootstrapping the data.
+       - Poisson measure.
+       - Select tweets according to the popularity and tf-idf score.
+- Editing website.
+
+
+
+
