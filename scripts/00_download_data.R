@@ -4,8 +4,8 @@
 # different searching features, parameters, and dates to download tweets.
 #
 # Searching parameters: 
-# - venezuela Cambio
-# - venezuela Gobierno
+# - venezuela cambio
+# - venezuela gobierno
 # - venezuela politica
 # - venezuela trancision 
 ##############################################################################
@@ -15,18 +15,18 @@ library(tidyverse)
 library(twitteR) 
 
 
-# Authorizing your app to access your Twitter account
+# Authorizing your app to access your Twitter account 
 setup_twitter_oauth(consumer_key = getOption("twitter_api_key"),
                     consumer_secret = getOption("twitter_api_token"))
 
 # Searching for tweets.
-searchTwitter("venezuela gobierno",
+searchTwitter("venezuela politica",
                         n = 15000, 
                         lang = "es",
-                        since = "2017-05-28", 
+                        since = "2017-05-20", 
                         until = "2017-05-31") %>%
               twListToDF() %>% 
-       write_csv("./data/gobierno_twits_0531_1.csv") 
+       write_csv("./data/used/politica_twits_0531.csv") 
 
 
 

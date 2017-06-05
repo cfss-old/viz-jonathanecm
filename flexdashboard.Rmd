@@ -1,0 +1,481 @@
+---
+title: "Final Project"
+author: Camacho Jonathan | Data Visualization | University of Chicago
+output: 
+  flexdashboard::flex_dashboard:
+    theme: yeti
+    vertical_layout: fill
+  html_document: js
+runtime: shiny       
+---
+
+```{r, include=FALSE}
+# Libraries
+library(flexdashboard)
+library(lubridate)
+library(tidyverse)
+library(tidytext)
+library(stringr)
+library(plotly)
+devtools::install_github('hadley/ggplot2')
+library(DT)
+library(knitr)
+library(scales)
+library(topicmodels)
+```
+
+```{r, echo=FALSE, echo=FALSE, message=FALSE}
+# Variables
+set.seed(1234)
+theme_set(theme_minimal())
+reg <- "([^A-Za-z\\d#@']|'(?![A-Za-z\\d#@]))"
+spanish_stopwords <- read_csv("./data/stopwords_es.csv")
+all_tweets <- as.tibble(read_csv("./data/tidy_tweets/all_tweets.csv"), stringsAsFactors = FALSE)
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Tokenizing by one term. 
+one_gram_tweets <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high"))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), "")) %>%
+       unnest_tokens(word, text, token = "regex", pattern = reg, drop = FALSE) %>%
+       filter(!word %in% spanish_stopwords$word, str_detect(word, "[a-z]"))
+```
+
+
+Frequencies Counts {data-orientation=rows} 
+=====================================
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+#### Frecuencies Counts.
+
+This section shows the more frequent Words in Venezuelans' tweets mentioning the terms _Venezuela_, _gobierno_, _cambio_, and _transicion_, since May 20th to May 31st. In the top, there are three tiles with the total one-gram grams according to the popularity of the tweets. Bellow there are two tabs: One is a bar Plot with the most frequent grams in the corpus. The second one is a table that can be used to explore the corpus. There is also a slider control that allows the user to select the number of most frequent grams to project in the plot. Finally, there is a selection tool that allows to select the grams to plot according to their popularity. Popularity is measure according to the number of times the tweet was re-tweeted.  
+
+```{r}
+selectInput("popularityInput", "Popularity",
+                    choices = c("high", "medium", "low"), 
+                    multiple = TRUE, selected = "high")
+
+helpText("Note: You need to select at least one ",
+         "popularity level.")
+
+sliderInput("top_grams", "Number of terms to display:", 
+            min = 5, max = 18, value = 18)
+
+output$downloadCSV <- downloadHandler(filename = 'data.csv',
+                                      content = function(file) {write_csv(data_for_dl(), file)})
+
+data_for_dl <- reactive({
+  dat <- one_gram_tweets
+})
+
+downloadLink('downloadCSV', label = 'Download dataset')
+```
+
+Row 
+-----------------------------------------------------------------------
+### Total high Popularity Grams
+       
+```{r}
+total_words_popularity <- as.tibble(table(one_gram_tweets$popularity))
+
+renderValueBox({
+       tweets <- total_words_popularity[1,2]
+       valueBox(tweets)
+})
+```
+
+### Total Medium Popularity Grams
+
+```{r}
+renderValueBox({
+       tweets <- total_words_popularity[3,2]
+       valueBox(tweets)
+})
+```
+
+### Total Low Popularity Grams
+
+```{r}
+renderValueBox({
+       tweets <- total_words_popularity[2,2]
+       valueBox(tweets)
+})
+```
+
+
+Column {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+### One-grams Bar Plot
+
+```{r, echo=FALSE}
+top_one_grams <- reactive({
+              filtered_data <- one_gram_tweets %>%
+                     filter(popularity == input$popularityInput) %>%
+                     count(word, sort = TRUE) %>%
+                     top_n(input$top_grams)
+                     return(filtered_data)
+})
+
+renderPlotly({
+plot <- top_one_grams() %>%
+       mutate(word = reorder(word, n)) %>%
+       ggplot(aes(word, n)) +
+       geom_col(alpha = 0.8, fill = "#3399CC") +
+       labs(x = "Word", y = "Frecuency") +
+       coord_flip()
+
+ggplotly(plot, height = 550, width = 1000)
+})
+```
+
+### Explore Tweets.
+
+```{r}
+toSpace <- function(x, pattern) gsub(pattern, " ", x)
+
+all_tweets %>%
+       mutate(popularity = as.factor(ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high")))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), ""), 
+              text = str_replace_all(text, c("\xed\xa0\xbc\xed\xb7\xa8\xed\xa0\xbc\xed\xb7\xb4 \""), ""), 
+              text = str_replace_all(text, c("O"), ""),
+              text = str_replace_all(text, c("\\*"), ""),
+              created = as.Date(created)) %>%
+       select(screenName, created, popularity, text) %>% 
+       datatable(colnames = c("Screen Name", "test", "Popularity", "Text"), 
+                 caption = 'Table 1: Explore Tweets.', 
+                 filter = 'top', options = list(pageLength = 10, autoWidth = TRUE, searchHighlight = TRUE))
+```
+
+tf_idf Frequencies
+=====================================
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+### tf-idf Frecuencies. 
+
+The short for term frequency–inverse document frequency, is a numerical statistic that is intended to reflect how important a word is to a document in a collection or corpus. It is often used as a weighting factor in information retrieval and text mining. Tf-idf scores go from 0 to 1, one being the highest score, indicating more importance. 
+
+The page has three sub-tabs. The first shows a plot with the tf-idfs for one-grams by popularity. The second one plots the tf-idf frequencies by popularity separately. Finally, the third sub-tab has the tf-idf for n-grams. 
+
+The slider tool can be used for selecting the range of the grams to be plotted. 
+
+
+```{r}
+# tf_idf Frequencies
+tweet_words_count <- one_gram_tweets %>%
+       count(popularity, word, sort = TRUE) %>%
+       ungroup()
+
+total_words <- tweet_words_count %>%
+       group_by(popularity) %>%
+       summarize(total = sum(n))
+
+tweet_words_count <- left_join(tweet_words_count, total_words)
+
+tweet_words_count <- tweet_words_count %>%
+       bind_tf_idf(word, popularity, n)
+
+tweet_important <- tweet_words_count %>%
+       arrange(desc(tf_idf)) %>%
+       mutate(word = factor(word, levels = rev(unique(word))),
+              tf_idf = round(tf_idf, 5))
+
+tdf_range <- range(tweet_important$tf_idf)
+
+sliderInput("top_tdf_grams", "Number of terms to display:", 
+            min = 5, max = 20, value = 25)
+
+top_tdf_one_grams <- reactive({
+              filtered_data <- tweet_important %>%
+                     top_n(input$top_tdf_grams)
+                     return(filtered_data)
+})
+```
+
+Column {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### One-grams' tf-idfs.
+
+```{r, echo=FALSE, message=FALSE}
+renderPlotly({
+plot0 <-  top_tdf_one_grams() %>%
+              ggplot(aes(word, tf_idf, fill = popularity)) +
+              geom_col() +
+              labs(x = "Word", y = "tf-idf") + 
+              guides(color = guide_legend(override.aes = list(size = 2))) +
+              coord_flip() + 
+              scale_fill_brewer(direction = -1) +
+              theme(legend.title = element_blank())
+
+ggplotly(plot0, height = 650, width = 1000)
+})
+```
+
+### One-grams' tf-idf by Popularity
+
+```{r, echo=FALSE}
+renderPlotly({
+plot1 <- top_tdf_one_grams() %>%
+       ggplot(aes(word, tf_idf, fill = popularity)) +
+       geom_col() +
+       labs(x = " ", y = "tf-idf") +
+       coord_flip() + 
+       facet_wrap(~ popularity, ncol = 1, scales = "free_y") + 
+       scale_fill_brewer(direction = -1) +
+       theme(legend.title = element_blank())
+
+ggplotly(plot1, height = 650, width = 1000)
+})
+```
+
+### N-Grams' tf-idfs.
+```{r, echo=FALSE, message=FALSE}
+ngrams <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high"))) %>% 
+       mutate(text = str_replace_all(text, c("https://t.co/[A-Za-z\\d]+|&amp;"), "")) %>%
+       unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
+       separate(trigram, c("word1", "word2", "word3"), sep = " ") %>%
+       filter(!word1 %in% spanish_stopwords$Word, str_detect(word1, "[a-z]"), 
+              !word2 %in% spanish_stopwords$Word, str_detect(word2, "[a-z]"),
+              !word3 %in% spanish_stopwords$Word, str_detect(word3, "[a-z]"))
+```
+
+```{r, echo=FALSE, message=FALSE}
+ngrams_united <- ngrams %>%
+  unite(ngram, word1, word2, word3, sep = " ")
+
+ngram_tf_idf <- ngrams_united %>%
+  count(popularity, ngram) %>%
+  bind_tf_idf(ngram, popularity, n) %>%
+  arrange(desc(tf_idf)) %>%
+       mutate(tf_idf = round(tf_idf, 5))
+```
+
+```{r, echo=FALSE, message=FALSE}
+renderPlotly({
+       plot3 <- ngram_tf_idf %>%
+       top_n(5) %>%
+       ggplot(aes(ngram, tf_idf, fill = popularity)) +
+       geom_col(alpha = 0.8) +
+       labs(x = "Word", y = "tf-idf") +
+       coord_flip() + 
+              facet_wrap(~ popularity, ncol = 1, scales = "free_y") + 
+              scale_fill_brewer(direction = -1) +
+              theme(legend.title = element_blank())
+       
+ggplotly(plot3, height = 650, width = 1000)
+})
+```
+
+Tweets by Posting Time. {data-orientation=rows} 
+=====================================
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+#### Tweets by Hour of Posting.
+
+The plot to the right shows the percentage of tweets that were posted according to the hour of the day. The x-axis indicates the hour of the day. 
+
+```{r}
+# sliderInput("top_tdf_grams", "Number of terms to display:", 
+#             min = 5, max = 30, value = 25)
+```
+
+Row 
+-----------------------------------------------------------------------
+### Tweets by Hour of Posting.
+
+```{r}
+all_tweets_by_popularity <- all_tweets %>%
+       mutate(popularity = ifelse(retweetCount %in% 0:20, "low",
+                                  ifelse(retweetCount %in% 21:200, "medium", "high")))
+```
+
+```{r}
+renderPlotly({
+plot4 <- all_tweets_by_popularity %>%
+  count(popularity, hour = hour(with_tz(created, "EST"))) %>%
+  mutate(percent = round(n / sum(n), 5)) %>%
+  ggplot(aes(hour, percent, color = popularity)) +
+  geom_line() +
+  scale_y_continuous(labels = percent_format()) +
+  labs(x = "Hour of day (EST)",
+       y = "% of tweets",
+       color = "") + 
+       scale_fill_brewer(direction = -1) +
+              theme(legend.title = element_blank())
+
+ggplotly(plot4, height = 650, width = 1000)
+})
+```
+
+Sentiment Analysis
+=====================================
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+### Sentiment Analysis.
+
+This graphs shows the top ten one-grams plotted according to their overall sentiment and popularity. The sentiments in this plot are anticipation, fear, sadness, anger, trust, surprise, disgust, and joy. The y-axis shows the tf-idf score of the gram. 
+
+```{r}
+#Loading sentiments lexicons.
+es_sentiments <- as.tibble(read_csv("./data/es_sentiments.csv"))
+
+# Extracting nrc and bing lexicons. 
+nrc <- es_sentiments %>%
+       filter(lexicon == "nrc") %>%
+       select(word = word_1, sentiment)
+
+bing <- es_sentiments %>% 
+       filter(lexicon == "bing") %>%
+       select(word = word_1, sentiment)
+```
+
+```{r}
+popularity <- one_gram_tweets %>%
+  group_by(popularity) %>%
+  mutate(total_words = n()) %>%
+  ungroup() %>%
+  distinct(id, popularity, total_words)
+
+by_popularity_sentiment <- one_gram_tweets %>%
+  inner_join(nrc, by = "word") %>%
+  count(sentiment, id) %>%
+  ungroup() %>%
+  complete(sentiment, id, fill = list(n = 0)) %>%
+  inner_join(popularity) %>%
+  group_by(popularity, sentiment, total_words) %>%
+  summarize(words = sum(n)) %>%
+  ungroup()
+```
+
+Row 
+-----------------------------------------------------------------------
+### One-grams by sentiment and popularity.
+
+```{r, echo=FALSE}
+renderPlotly({
+plot5 <- tweet_important %>%
+  inner_join(nrc, by = "word") %>%
+  filter(!sentiment %in% c("positive", "negative")) %>%
+  mutate(sentiment = reorder(sentiment, -tf_idf),
+         word = reorder(word, -tf_idf),
+         tf_idf = round(tf_idf, 5)) %>%
+  group_by(sentiment) %>%
+  top_n(10, tf_idf) %>%
+  ungroup() %>%
+  ggplot(aes(word, tf_idf, fill = popularity)) +
+  facet_wrap(~ sentiment, scales = "free", nrow = 2) +
+  geom_bar(stat = "identity", position = "fill", alpha = 0.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "",
+       y = "tf-idf") + 
+       scale_fill_brewer(direction = -1) +
+              theme(legend.title = element_blank())
+
+ggplotly(plot5, height = 650, width = 1100)
+})
+```
+
+Topic Models
+=====================================
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+### Topic Models.
+
+The plot shows the topic models created using latent Dirichlet allocation (LDA) In natural language processing, LDA is a generative statistical model that allows sets of observations to be explained by unobserved groups that explain why some parts of the data are similar. For example, if observations are words collected into documents, it posits that each document is a mixture of a small number of topics and that each word's creation is attributable to one of the document's topics.
+
+For this plot, I decided to cluster the topics at K = 4 because this number clusters projected the most meaningful topics. 
+
+Row 
+-----------------------------------------------------------------------
+### Total High Popularity
+```{r}
+topicm_words_count <- one_gram_tweets %>%
+  count(id, word, sort = TRUE) %>%
+       ungroup()
+
+tweets_dtm <- topicm_words_count %>%
+  cast_dtm(id, word, n)
+
+tweets_lda <- LDA(tweets_dtm, k = 4, control = list(seed = 1234))
+
+tweets_lda_td <- tidy(tweets_lda)
+
+top_terms <- tweets_lda_td %>%
+  group_by(topic) %>%
+  mutate(beta = round(beta, 5)) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+renderPlotly({
+plot6 <- top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip() + 
+               scale_fill_brewer(direction = -1) +
+              theme(legend.title = element_blank())
+       
+ggplotly(plot6, height = 650, width = 1100)
+})
+```
+
+Technical Section {data-orientation=columns} 
+=====================================
+
+Column {data-width = 450}
+-----------------------------------------------------------------------
+
+###
+
+Among social scientists, there has been an increasing in using social media to measure different reactions of social groups and movements. [1] The main idea is that large sectors of the population in develop and many underdeveloped nations are expressing their political ideas more and more in social media. 
+
+In this project, I conduct an exploratory content analysis of Venezuelans’ tweeters from May 20th to May 31st. This exploration is particularly interesting because of the current political crisis in Venezuela. On April 12, 2017, the Venezuelan Supreme Court (SC) announced that it was taking over the Congress' functions. The next day, the President of the country asked the SC to consider retracting from this announcement. The night of April 14 of 2017, the SC did it; Since then, a large sector of the population declared themselves in rebellion for what they consider as a breakage of the constitutional order. The protests have not stopped since then, sixty persons have died. 
+
+In this political context, and using computational content analysis, I wanted to explore what are the characteristics of the most influential messages in the Twitter social media? This is an important question related the use of social media for political mobilization.
+
+To conduct this exploratory analysis, I made use of several packages in R Language. These packages are oriented for conducting content analysis in text corpora. In the app, the following section can be found: Frequency Counts, tf-idf Frequencies, Tweets by Time, Sentiment Analysis, and Topic Models.
+
+For this project, I created an API to get tweets from 05/01 to 05/28. Because of lack of geolocation in Venezuelan’s tweets, I searched tweets using the terms _"Venezuela," "gobierno," “politíca,” Transicion and "cambio_." The initial size of the corpus was 45,000. The corpus was tidied, re-tweets were removed, tweets were tokenized by one-grams and n-grams. Also, other variables were added: tweet type, and tweet popularity. The final size of the corpus was 6,445 tweets. I found some lexicons in Spanish for sentiment analysis such as the “similitude” lexicon, but I was not satisfied with the size, so I translated the "nrc" and "bing" lexicons. This translation rendered better results.
+
+Following Cairo (2016) idea that a visualization is a “visual representation of information designed to enable communication, analysis, discovery, and exploration,” I wanted for this project to allow the public interaction with the data. For this reason, I decided to use an R Flexdashboard. 
+
+Furthermore, for the creation of all the visualizations and the application the principles exposed by Cairo (2016) were followed; Cairo (2016) explains that visualizations need to be _thruthfull_, _functional_, _beautiful_, _insightful_, and _enlightening_. I believe that both the visualization and the apps achieve these principles. For example, to ensure that the visualizations are _truthful_, I used explanatory text, labels, legends, or colors to indicate the process of selection of tweets and filtering for each visualization. 
+
+Column {data-width = 450}
+-----------------------------------------------------------------------
+
+### 
+Similarly, the raw data was made accessible to the user by a download link. Furthermore, all the scripts, datasets, lexicons, etc., are publicly available at [https://github.com/jonathanecm/viz-jonathanecm]. Thus, the project is based on an honest research. Also, I conducted the project, I tried to avoid self-deception, jumping to conclusions, or seen correlations that were not present
+
+ Similarly, to ensure the visualizations and the application were _functional_, I focus of accurately depicting of the data allow the user to interact with it. Built in the application there are several options such as input tools, selector tools, sliders, and search boxes that allow the user to interact intentionally with the data; changing the range of information is displayed and the categories of data displayed.  For example, the _One-gram Bar Plot_, in page _Frecuencies Counts_, allows the user to select the range of top tweets to display, with the use of a slider tool; as well as, change the level of popularity of tweets to be plowed, using a selection tool. 
+ 
+Another principle that principle exposed by Cairo (2016) that I dedicated attention was _beauty_. In order to make the visualizations and the app beautiful and intriguing to the user, I experimented with several themes, fonts, and colors. I settle in color _#3399CC_ because I considered being a subtle tone of blue that was attractive to the senses. I think that clear and subtle tones of colors since sophisticated making user to have a pleasurable sensation when seen the visualizations and the app. Thus, I ensure that all the visualization, using “scale_fill_brewer(direction = -1)” and the app have a coherent set of similar colors. Another element that I aggregated that contributes to both the functionality and sophistication (beauty) of the application is the use of sub-tabs. This allows having related data projections in the same page. Similarly, the type of plot also was selected with functional and beauty in mind. Because I was mostly working with categorical data and frequencies, the most practical type of plot to use is a bar plot. However, to facilitate the reading of grams and n-grams, I flipped the y- and x-axes. To maintain the coherence of related but separated plots, such as sentiment plots and topic plots, I created a grid of plots to keep them together; using the function facet-grid in R. To enhance the visualization of the data, I stacked the bars in the plot _Sentiments by Popularity_. This allows seeing bars that are in the same position without overlapping. Finally, to enhance the aesthetic appearance, I rounded all the numbers to five digits.  
+
+I also consider this visualization and the application to be _insightful_. The reason is that they reveal information that is not obvious otherwise regarding the characteristics of popular or influential Venezuelan’s tweets in the middle of the current crisis. An example of this is the possibility of discovering how tweets are clustered according to topics of the overall sentiment. Furthermore, I created the pages in an incremental fashion, going from a simple to the more complex analysis, with the intention of build knowledge in the user. So, users can start for noticing the most common grams used in tweets, and go on a path of discovery from the influence of those grams in the corpus, with the tf-idf scores, to the discovery of pattern is the sentiment and topics pages. 
+
+
+Column {data-width = 450}
+-----------------------------------------------------------------------
+
+### 
+Furthermore, the user can conduct their searches of a term in the tweets, opening the door for further exploration and insights; downloading the data for further analysis.
+Finally, it the visualization and app in this project are _enlightening._ A user that follows the pages, going from simple to complex analysis, will develop an understanding of the way that Venezuelans’ Twitter users think about politics in the context of the current political crisis. So, this application and visualizations have the potential to change people’s minds for the better. 
+
+Cairo, Alberto. The Truthful Art: Data, charts, and maps for communication. New Riders, 2016.
+
+[1] Haewoon Kwak, Changhyun Lee, Hosung Park, and Sue Moon. 2010. What is Twitter, a social network or a news media?. In Proceedings of the 19th international conference on World wide web (WWW '10). ACM, New York, NY, USA, 591-600. DOI=http://dx.doi.org/10.1145/1772690.1772751
